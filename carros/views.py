@@ -8,8 +8,7 @@ from .serializers import CarSerializer
 def car_create(request):
     if request.method == 'GET':
         cars = Car.objects.all()
-        serializer = CarSerializer(cars, many=True)
-        print(serializer.data)  
+        serializer = CarSerializer(cars, many=True)  
         return Response(serializer.data)
     
     if request.method == 'POST':
