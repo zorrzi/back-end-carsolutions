@@ -21,6 +21,7 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'cliente.apps.ClienteConfig',
     'carros.apps.CarrosConfig',
+    'funcionario.apps.FuncionarioConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -96,10 +97,11 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',  # Verifique se isso está presente
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
-AUTH_USER_MODEL = 'cliente.Cliente'
+AUTH_USER_MODEL = 'auth.User'
+
 
 
 
