@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'cliente.apps.ClienteConfig',
     'carros.apps.CarrosConfig',
     'funcionario.apps.FuncionarioConfig',
+    'agendamentos.apps.AgendamentosConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
