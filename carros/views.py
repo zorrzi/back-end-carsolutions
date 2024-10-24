@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Car
 from .serializers import CarSerializer
+from .utils import get_car_info
+from django.http import JsonResponse
 
 @api_view(['GET', 'POST'])
 def car_create(request):
@@ -28,7 +30,14 @@ def car_update_delete(request, id):
 
     if request.method == 'GET':
         serializer = CarSerializer(car)
-        return Response(serializer.data)
+        ficha = get_car_info(car.brand, car.model, car.year)
+        print(ficha)
+        if ficha == None:
+            return Response(serializer.data)
+        else:
+            res = {**serializer.data, **ficha}
+            print(res)
+            return JsonResponse(res)
 
     if request.method == 'PUT':
         serializer = CarSerializer(car, data=request.data)
