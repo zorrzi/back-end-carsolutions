@@ -98,3 +98,66 @@ def listar_agendamentos_cliente(request):
             })
     
     return Response(agendamentos_data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def listar_agendamentos_pendentes(request):
+    agendamentos = Agendamento.objects.filter(funcionario__isnull=True, status='pendente')
+    agendamentos_data = []
+
+    for agendamento in agendamentos:
+        agendamentos_data.append({
+            'id': agendamento.id,
+            'carro': agendamento.carro.model,
+            'tipo': agendamento.tipo,
+            'data': agendamento.data.strftime('%Y-%m-%d') if agendamento.data else None,
+            'horario': agendamento.horario.strftime('%H:%M') if agendamento.horario else None,
+            'data_retirada': agendamento.data_retirada.strftime('%Y-%m-%d') if agendamento.data_retirada else None,
+            'horario_retirada': agendamento.horario_retirada.strftime('%H:%M') if agendamento.horario_retirada else None,
+            'data_devolucao': agendamento.data_devolucao.strftime('%Y-%m-%d') if agendamento.data_devolucao else None,
+            'horario_devolucao': agendamento.horario_devolucao.strftime('%H:%M') if agendamento.horario_devolucao else None,
+        })
+    
+    return Response(agendamentos_data, status=status.HTTP_200_OK)
+
+# Assumir agendamento
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def assumir_agendamento(request, agendamento_id):
+    funcionario = request.user
+    agendamento = get_object_or_404(Agendamento, id=agendamento_id)
+
+    # Verifica se o agendamento ainda está pendente
+    if agendamento.status != 'pendente':
+        return Response({'error': 'Este agendamento já foi assumido ou está concluído.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Assumindo o agendamento
+    agendamento.funcionario = funcionario
+    agendamento.status = 'em atendimento'
+    agendamento.save()
+
+    return Response({'message': 'Agendamento assumido com sucesso!'}, status=status.HTTP_200_OK)
+
+# Listar agendamentos assumidos pelo funcionário
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def listar_agendamentos_funcionario(request):
+    funcionario = request.user
+    agendamentos = Agendamento.objects.filter(funcionario=funcionario, status='em atendimento')
+    agendamentos_data = []
+
+    for agendamento in agendamentos:
+        agendamentos_data.append({
+            'id': agendamento.id,
+            'carro': agendamento.carro.model,
+            'tipo': agendamento.tipo,
+            'data': agendamento.data.strftime('%Y-%m-%d') if agendamento.data else None,
+            'horario': agendamento.horario.strftime('%H:%M') if agendamento.horario else None,
+            'data_retirada': agendamento.data_retirada.strftime('%Y-%m-%d') if agendamento.data_retirada else None,
+            'horario_retirada': agendamento.horario_retirada.strftime('%H:%M') if agendamento.horario_retirada else None,
+            'data_devolucao': agendamento.data_devolucao.strftime('%Y-%m-%d') if agendamento.data_devolucao else None,
+            'horario_devolucao': agendamento.horario_devolucao.strftime('%H:%M') if agendamento.horario_devolucao else None,
+        })
+    
+    return Response(agendamentos_data, status=status.HTTP_200_OK)
