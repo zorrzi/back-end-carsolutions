@@ -1,10 +1,12 @@
 # clientes/models.py
 from django.contrib.auth.models import User
 from django.db import models
+from carros.models import Car
 
 class Cliente(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    cpf = models.CharField(max_length=11, unique=True)  # Campo CPF único para cada cliente
+    cpf = models.CharField(max_length=11, unique=True) 
+    favoritos = models.ManyToManyField(Car, related_name="favoritado_por", blank=True)  
 
     def __str__(self):
         return self.user.username
