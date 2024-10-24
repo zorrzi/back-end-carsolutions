@@ -125,7 +125,7 @@ def listar_favoritos(request):
         # Obtém todos os carros favoritados pelo cliente
         favoritos = cliente.favoritos.all()
         # Serializa os dados dos carros favoritos
-        data = [{"id": car.id, "brand": car.brand, "model": car.model, "year": car.year, "image_url": car.image_url} for car in favoritos]
+        data = [{"id": car.id, "brand": car.brand, "model": car.model, "year": car.year, "image_url": car.image_url, "is_for_rent": car.is_for_rent, "is_for_sale":car.is_for_sale} for car in favoritos]
         return Response(data, status=status.HTTP_200_OK)
     except Cliente.DoesNotExist:
         return Response({"error": "Cliente não encontrado."}, status=status.HTTP_404_NOT_FOUND)
