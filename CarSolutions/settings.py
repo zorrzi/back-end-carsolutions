@@ -19,6 +19,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'chat.apps.ChatConfig',
     'cliente.apps.ClienteConfig',
     'carros.apps.CarrosConfig',
     'funcionario.apps.FuncionarioConfig',
