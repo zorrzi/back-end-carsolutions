@@ -1,6 +1,6 @@
 # clientes/views.py
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate
 from rest_framework.decorators import api_view
 from rest_framework import status
 from rest_framework.response import Response
@@ -10,7 +10,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.decorators import login_required
 from rest_framework.authtoken.models import Token
-from django.views.decorators.csrf import csrf_exempt
+
 
 @api_view(['POST'])
 def cadastro_cliente(request):
@@ -20,7 +20,9 @@ def cadastro_cliente(request):
     confirm_password = data.get('confirmar_senha')
     email = data.get('email')
     cpf = data.get('cpf')
+    cnh = data.get('cnh')  # Novo campo para CNH
 
+    # Validações
     if password != confirm_password:
         return Response({'message': 'As senhas não coincidem.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -29,13 +31,14 @@ def cadastro_cliente(request):
 
     if Cliente.objects.filter(cpf=cpf).exists():
         return Response({'message': 'CPF já está cadastrado.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    if Cliente.objects.filter(cnh=cnh).exists():
+        return Response({'message': 'CNH já está cadastrada.'}, status=status.HTTP_400_BAD_REQUEST)
 
     user = User.objects.create_user(username=username, password=password, email=email)
-    Cliente.objects.create(user=user, cpf=cpf)
+    Cliente.objects.create(user=user, cpf=cpf, cnh=cnh)
 
-    # Cria um token para o novo usuário
     token, created = Token.objects.get_or_create(user=user)
-
     return Response({'message': 'Cadastro realizado com sucesso!', 'token': token.key}, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
