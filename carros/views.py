@@ -115,3 +115,44 @@ def get_all_cars_by_year_brand_and_model(request, ano, marca, modelo):
     cars = Car.objects.filter(year=ano, brand=marca, model=modelo)
     serializer = CarSerializer(cars, many=True)
     return Response(serializer.data)
+
+@api_view(['GET'])
+def car_list(request):
+    # Pega os parâmetros de filtro da query string
+    is_for_sale = request.GET.get('isForSale', 'true') == 'true'
+    is_for_rent = request.GET.get('isForRent', 'true') == 'true'
+    min_rental_price = request.GET.get('minRentPrice', None)
+    max_rental_price = request.GET.get('maxRentPrice', None)
+    min_purchase_price = request.GET.get('minSalePrice', None)
+    max_purchase_price = request.GET.get('maxSalePrice', None)
+    min_mileage = request.GET.get('minMileage', None)
+    max_mileage = request.GET.get('maxMileage', None)
+    brand = request.GET.get('brand', None)
+    model = request.GET.get('model', None)
+    year = request.GET.get('year', None)
+
+    # Filtro inicial
+    queryset = Car.objects.all()
+
+    # Aplica os filtros com base nos parâmetros recebidos
+    if is_for_sale:
+        queryset = queryset.filter(is_for_sale=True)
+    if is_for_rent:
+        queryset = queryset.filter(is_for_rent=True)
+    if min_rental_price and max_rental_price:
+        queryset = queryset.filter(rental_price__gte=min_rental_price, rental_price__lte=max_rental_price)
+    if min_purchase_price and max_purchase_price:
+        queryset = queryset.filter(purchase_price__gte=min_purchase_price, purchase_price__lte=max_purchase_price)
+    if min_mileage is not None and max_mileage is not None:
+        queryset = queryset.filter(mileage__gte=min_mileage, mileage__lte=max_mileage)
+    if brand:
+        queryset = queryset.filter(brand__icontains=brand)
+    if model:
+        queryset = queryset.filter(model__icontains=model)
+    if year:
+        queryset = queryset.filter(year=year)
+
+    # Serializa os dados filtrados
+    serializer = CarSerializer(queryset, many=True)
+    return Response(serializer.data)
+

@@ -148,3 +148,11 @@ REST_FRAMEWORK = {
 }
 
 
+# Configurações de envio de e-mail
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'carsolutions90@gmail.com'          # Insira o e-mail que enviará as mensagens
+EMAIL_HOST_PASSWORD = 'tfbjviqwlowqrfqs'             
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER             # Define o e-mail remetente padrão
