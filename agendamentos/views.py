@@ -9,6 +9,19 @@ from .models import Agendamento, Car
 from cartaodecredito.models import CartaoCredito
 from cliente.models import Cliente
 
+# Função auxiliar para atualizar status
+def atualizar_status_agendamento(agendamento):
+    hoje = datetime.date.today()
+    if agendamento.tipo == 'reserva' and agendamento.data_expiracao and agendamento.data_expiracao < hoje:
+        agendamento.status = 'concluido'
+        agendamento.save()
+    elif agendamento.tipo == 'aluguel' and agendamento.data_devolucao and agendamento.data_devolucao < hoje:
+        agendamento.status = 'concluido'
+        agendamento.save()
+    elif agendamento.tipo == 'visita' and agendamento.data and agendamento.data < hoje:
+        agendamento.status = 'concluido'
+        agendamento.save()
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def agendar_visita(request):
@@ -34,7 +47,6 @@ def agendar_visita(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def reservar_veiculo(request):
-    print(request.data)
     usuario = request.user
     cliente = Cliente.objects.get(user=usuario)
     carro_id = request.data.get('carro_id')
@@ -44,7 +56,6 @@ def reservar_veiculo(request):
     if not carro_id:
         return Response({"error": "ID do carro é obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Verifica se está usando um cartão salvo ou adicionando um novo
     if cartao_id:
         cartao = get_object_or_404(CartaoCredito, id=cartao_id, cliente=cliente)
     elif novo_cartao_dados:
@@ -56,7 +67,6 @@ def reservar_veiculo(request):
     else:
         return Response({"error": "Cartão de crédito é obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Calcula o prazo de 14 dias para a reserva
     data_reserva = datetime.date.today()
     data_expiracao = data_reserva + datetime.timedelta(days=14)
 
@@ -72,7 +82,6 @@ def reservar_veiculo(request):
     
     return Response({"message": "Reserva de veículo realizada com sucesso!"}, status=status.HTTP_201_CREATED)
 
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def reservar_aluguel(request):
@@ -86,15 +95,9 @@ def reservar_aluguel(request):
     cartao_id = request.data.get('cartao_id')
     novo_cartao_dados = request.data.get('novo_cartao')
 
-    # Validação dos campos obrigatórios
-    if not carro_id:
-        return Response({"error": "ID do carro é obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
-    if not data_retirada or not data_devolucao:
-        return Response({"error": "Datas de retirada e devolução são obrigatórias."}, status=status.HTTP_400_BAD_REQUEST)
-    if not horario_retirada or not horario_devolucao:
-        return Response({"error": "Horários de retirada e devolução são obrigatórios."}, status=status.HTTP_400_BAD_REQUEST)
+    if not carro_id or not data_retirada or not data_devolucao or not horario_retirada or not horario_devolucao:
+        return Response({"error": "Dados obrigatórios ausentes."}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Verifica se está usando um cartão salvo ou adicionando um novo
     if cartao_id:
         cartao = get_object_or_404(CartaoCredito, id=cartao_id, cliente=cliente)
     elif novo_cartao_dados:
@@ -106,10 +109,7 @@ def reservar_aluguel(request):
     else:
         return Response({"error": "Cartão de crédito é obrigatório para reserva de aluguel."}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Validação do carro
     carro = get_object_or_404(Car, id=carro_id)
-
-    # Criando o agendamento de aluguel com datas e horários
     Agendamento.objects.create(
         carro=carro,
         usuario=usuario,
@@ -123,63 +123,38 @@ def reservar_aluguel(request):
 
     return Response({"message": "Reserva de aluguel realizada com sucesso!"}, status=status.HTTP_201_CREATED)
 
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def listar_agendamentos_cliente(request):
     usuario = request.user
-    cliente = Cliente.objects.get(user=usuario)
     agendamentos = Agendamento.objects.filter(usuario=usuario)
 
     agendamentos_data = []
     for agendamento in agendamentos:
-        if agendamento.tipo == 'reserva':
-            agendamento_info = {
-                "carro": f"{agendamento.carro.brand} {agendamento.carro.model}",
-                "tipo": agendamento.tipo,
-                "data": agendamento.data.strftime('%Y-%m-%d') if agendamento.data else '',
-                "horario": agendamento.horario.strftime('%H:%M') if agendamento.horario else '',
-                "data_expiracao": agendamento.data_expiracao.strftime('%Y-%m-%d') if agendamento.data_expiracao else '',
-                "status": agendamento.status
-            }
-            
-        elif agendamento.tipo == 'aluguel':
-            agendamento_info = {
-                "carro": f"{agendamento.carro.brand} {agendamento.carro.model}",
-                "tipo": agendamento.tipo,
-                "data_retirada": agendamento.data_retirada.strftime('%Y-%m-%d') if agendamento.data_retirada else '',
-                "horario_retirada": agendamento.horario_retirada.strftime('%H:%M') if agendamento.horario_retirada else '',
-                "data_devolucao": agendamento.data_devolucao.strftime('%Y-%m-%d') if agendamento.data_devolucao else '',
-                "horario_devolucao": agendamento.horario_devolucao.strftime('%H:%M') if agendamento.horario_devolucao else '',
-                "status": agendamento.status
-            }
-
-        elif agendamento.tipo == 'visita':
-            agendamento_info = {
-                "carro": f"{agendamento.carro.brand} {agendamento.carro.model}",
-                "tipo": agendamento.tipo,
-                "data": agendamento.data.strftime('%Y-%m-%d') if agendamento.data else '',
-                "horario": agendamento.horario.strftime('%H:%M') if agendamento.horario else '',
-                "status": agendamento.status
-            }
-
-        else:
-            agendamento_info = {}
-
+        atualizar_status_agendamento(agendamento)
+        agendamento_info = {
+            "carro": f"{agendamento.carro.brand} {agendamento.carro.model}",
+            "tipo": agendamento.tipo,
+            "data": agendamento.data.strftime('%Y-%m-%d') if agendamento.data else '',
+            "horario": agendamento.horario.strftime('%H:%M') if agendamento.horario else '',
+            "data_retirada": agendamento.data_retirada.strftime('%Y-%m-%d') if agendamento.data_retirada else '',
+            "horario_retirada": agendamento.horario_retirada.strftime('%H:%M') if agendamento.horario_retirada else '',
+            "data_devolucao": agendamento.data_devolucao.strftime('%Y-%m-%d') if agendamento.data_devolucao else '',
+            "horario_devolucao": agendamento.horario_devolucao.strftime('%H:%M') if agendamento.horario_devolucao else '',
+            "status": agendamento.status
+        }
         agendamentos_data.append(agendamento_info)
 
     return Response(agendamentos_data, status=status.HTTP_200_OK)
 
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def listar_agendamentos_pendentes(request):
-    # Filtra apenas agendamentos de tipo 'visita' e com status 'pendente'
     agendamentos_pendentes = Agendamento.objects.filter(tipo='visita', status='pendente')
-
     agendamentos_data = []
     for agendamento in agendamentos_pendentes:
-        agendamento_info = {
+        atualizar_status_agendamento(agendamento)
+        agendamentos_data.append({
             "id": agendamento.id,
             "nome_cliente": agendamento.usuario.username,
             "carro": f"{agendamento.carro.brand} {agendamento.carro.model}",
@@ -187,11 +162,8 @@ def listar_agendamentos_pendentes(request):
             "data": agendamento.data.strftime('%Y-%m-%d') if agendamento.data else '',
             "horario": agendamento.horario.strftime('%H:%M') if agendamento.horario else '',
             "status": agendamento.status,
-        }
-        agendamentos_data.append(agendamento_info)
-
+        })
     return Response(agendamentos_data, status=status.HTTP_200_OK)
-
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -201,22 +173,22 @@ def assumir_agendamento(request, agendamento_id):
 
     if agendamento.tipo == 'visita':
         agendamento.funcionario = usuario
-        agendamento.status = 'em atendimento'
+        agendamento.status = 'confirmado'
         agendamento.save()
         return Response({"message": "Agendamento assumido com sucesso!"}, status=status.HTTP_200_OK)
     else:
         return Response({"error": "Apenas agendamentos de visita podem ser assumidos."}, status=status.HTTP_400_BAD_REQUEST)
 
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def listar_atendimentos_funcionario(request):
     usuario = request.user
-    
     atendimentos = Agendamento.objects.filter(funcionario=usuario, status='em atendimento')
-    
-    atendimentos_data = [
-        {
+
+    atendimentos_data = []
+    for atendimento in atendimentos:
+        atualizar_status_agendamento(atendimento)
+        atendimentos_data.append({
             "id": atendimento.id,
             "nome": atendimento.usuario.username,
             "tipo": atendimento.tipo,
@@ -227,8 +199,6 @@ def listar_atendimentos_funcionario(request):
             "data_devolucao": atendimento.data_devolucao.strftime('%Y-%m-%d') if atendimento.data_devolucao else '',
             "horario_devolucao": atendimento.horario_devolucao.strftime('%H:%M') if atendimento.horario_devolucao else '',
             "status": atendimento.status
-        }
-        for atendimento in atendimentos
-    ]
+        })
 
     return Response(atendimentos_data, status=status.HTTP_200_OK)
