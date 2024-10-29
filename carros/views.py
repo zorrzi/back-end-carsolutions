@@ -156,3 +156,12 @@ def car_list(request):
     serializer = CarSerializer(queryset, many=True)
     return Response(serializer.data)
 
+
+@api_view(['DELETE'])
+def delete_em_massa(request):
+    car_ids = request.data.get('ids', [])
+    if not car_ids:
+        return Response({"error": "No car IDs provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+    Car.objects.filter(id__in=car_ids).delete()
+    return Response({"message": "Selected cars deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
