@@ -146,7 +146,7 @@ def solicitar_redefinicao_senha(request):
         user = User.objects.get(email=email)
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
-        reset_url = f"http://localhost:3000/reset-password/{uid}/{token}/"  # URL do frontend para redefinir senha
+        reset_url = f"http://localhost:8000/reset-password/{uid}/{token}/"  # URL do frontend para redefinir senha
 
         # Envia o e-mail com o link de redefinição de senha
         send_mail(
