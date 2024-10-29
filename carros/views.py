@@ -20,7 +20,6 @@ def car_create(request):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 @api_view(['GET', 'PUT', 'DELETE'])
 def car_update_delete(request, id):
     try:
@@ -118,7 +117,6 @@ def get_all_cars_by_year_brand_and_model(request, ano, marca, modelo):
 
 @api_view(['GET'])
 def car_list(request):
-    # Pega os parâmetros de filtro da query string
     is_for_sale = request.GET.get('isForSale', 'true') == 'true'
     is_for_rent = request.GET.get('isForRent', 'true') == 'true'
     min_rental_price = request.GET.get('minRentPrice', None)
@@ -132,7 +130,7 @@ def car_list(request):
     year = request.GET.get('year', None)
 
     # Filtro inicial
-    queryset = Car.objects.all()
+    queryset = Car.objects.filter(is_reserved=False)  # Exclui carros reservados
 
     # Aplica os filtros com base nos parâmetros recebidos
     if is_for_sale:
@@ -157,6 +155,7 @@ def car_list(request):
     return Response(serializer.data)
 
 
+
 @api_view(['DELETE'])
 def delete_em_massa(request):
     car_ids = request.data.get('ids', [])
@@ -165,3 +164,20 @@ def delete_em_massa(request):
 
     Car.objects.filter(id__in=car_ids).delete()
     return Response({"message": "Selected cars deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['POST'])
+def reserve_car(request, id):
+    try:
+        car = Car.objects.get(id=id)
+    except Car.DoesNotExist:
+        return Response({"error": "Carro não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+
+    if car.is_reserved:
+        return Response({"error": "Carro já está reservado."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Marca o carro como reservado
+    car.is_reserved = True
+    car.save()
+
+    return Response({"message": "Carro reservado com sucesso!"}, status=status.HTTP_200_OK)

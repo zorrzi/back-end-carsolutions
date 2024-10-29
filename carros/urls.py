@@ -12,6 +12,7 @@ urlpatterns = [
     path('buscar/<int:ano>/<str:marca>/<str:modelo>', views.get_all_cars_by_year_brand_and_model, name='get-cars-by-year-brand-and-model'),  # Passa ano, marca e modelo diretamente na URL
     path('catalogo/', views.car_list, name='get-catalog'),
     path('delete-em-massa/', views.delete_em_massa, name='bulk_delete_cars'),
+    path('reserve/<int:id>/', views.reserve_car, name='reserve-car'),
 
 ]
 
