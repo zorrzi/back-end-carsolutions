@@ -84,6 +84,45 @@ def reservar_veiculo(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+def verificar_disponibilidade(request):
+    carro_id = request.data.get('carro_id')
+    data_retirada = request.data.get('data_retirada')
+    horario_retirada = request.data.get('horario_retirada')
+    data_devolucao = request.data.get('data_devolucao')
+    horario_devolucao = request.data.get('horario_devolucao')
+
+    if not all([carro_id, data_retirada, horario_retirada, data_devolucao, horario_devolucao]):
+        return Response({"error": "Todos os campos de data e horário são obrigatórios."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Verificar disponibilidade usando a função auxiliar `checar_disponibilidade_aluguel`
+    is_available = checar_disponibilidade_aluguel(
+        carro_id, data_retirada, horario_retirada, data_devolucao, horario_devolucao
+    )
+
+    if is_available:
+        return Response({"disponivel": True}, status=status.HTTP_200_OK)
+    else:
+        return Response({"disponivel": False, "error": "O carro já está reservado para o período selecionado."}, status=status.HTTP_400_BAD_REQUEST)
+
+# Função auxiliar para verificar a disponibilidade de aluguel de um carro
+def checar_disponibilidade_aluguel(car_id, data_retirada, horario_retirada, data_devolucao, horario_devolucao):
+    # Formata as datas e horários como objetos datetime completos
+    data_retirada_completa = datetime.datetime.strptime(f"{data_retirada} {horario_retirada}", "%Y-%m-%d %H:%M")
+    data_devolucao_completa = datetime.datetime.strptime(f"{data_devolucao} {horario_devolucao}", "%Y-%m-%d %H:%M")
+
+    # Busca conflitos de agendamentos de aluguel para o mesmo carro e status 'pendente'
+    conflitos = Agendamento.objects.filter(
+        carro_id=car_id,
+        tipo='aluguel',
+        data_retirada__lt=data_devolucao_completa,
+        data_devolucao__gt=data_retirada_completa,
+        status='pendente'
+    )
+
+    return not conflitos.exists()  # Retorna True se não houver conflitos
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def reservar_aluguel(request):
     usuario = request.user
     cliente = Cliente.objects.get(user=usuario)
@@ -95,9 +134,11 @@ def reservar_aluguel(request):
     cartao_id = request.data.get('cartao_id')
     novo_cartao_dados = request.data.get('novo_cartao')
 
+    # Verificação de dados obrigatórios
     if not carro_id or not data_retirada or not data_devolucao or not horario_retirada or not horario_devolucao:
         return Response({"error": "Dados obrigatórios ausentes."}, status=status.HTTP_400_BAD_REQUEST)
 
+    # Cartão de crédito
     if cartao_id:
         cartao = get_object_or_404(CartaoCredito, id=cartao_id, cliente=cliente)
     elif novo_cartao_dados:
@@ -110,6 +151,13 @@ def reservar_aluguel(request):
         return Response({"error": "Cartão de crédito é obrigatório para reserva de aluguel."}, status=status.HTTP_400_BAD_REQUEST)
 
     carro = get_object_or_404(Car, id=carro_id)
+
+    # Verificar a disponibilidade do carro no intervalo de datas fornecido
+    disponibilidade = checar_disponibilidade_aluguel(carro_id, data_retirada, horario_retirada, data_devolucao, horario_devolucao)
+    if not disponibilidade:
+        return Response({"error": "Carro já está reservado para o período selecionado."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Criar o agendamento de aluguel
     Agendamento.objects.create(
         carro=carro,
         usuario=usuario,
@@ -122,6 +170,7 @@ def reservar_aluguel(request):
     )
 
     return Response({"message": "Reserva de aluguel realizada com sucesso!"}, status=status.HTTP_201_CREATED)
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
