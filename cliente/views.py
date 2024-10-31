@@ -146,7 +146,7 @@ def solicitar_redefinicao_senha(request):
         user = User.objects.get(email=email)
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
-        reset_url = f"https://front-end-carsolutions.onrender.com/reset-password/{uid}/{token}/"  # URL do frontend para redefinir senha
+        reset_url = f"https://front-end-carsolutions.onrender.com/redefinirSenha/{uid}/{token}/"  # URL do frontend para redefinir senha
 
         # Envia o e-mail com o link de redefinição de senha
         send_mail(
