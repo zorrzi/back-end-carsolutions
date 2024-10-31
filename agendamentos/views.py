@@ -8,6 +8,7 @@ from rest_framework import status
 from .models import Agendamento, Car, Feedback
 from cartaodecredito.models import CartaoCredito
 from cliente.models import Cliente
+from .serializers import FeedbackSerializer
 
 # Função auxiliar para atualizar status
 def atualizar_status_agendamento(agendamento):
@@ -295,3 +296,20 @@ def registrar_feedback(request, agendamento_id):
     agendamento.save()
 
     return Response({"message": "Feedback registrado com sucesso!"}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def listar_feedbacks(request):
+    feedbacks = Feedback.objects.all()
+    feedbacks_data = [
+        {
+            "id": feedback.id,
+            "usuario": feedback.usuario.username,  # Adiciona o nome de usuário em vez do ID
+            "comentario": feedback.comentario,
+            "nota": feedback.nota,
+            "agendamento_id": feedback.agendamento.id,
+        }
+        for feedback in feedbacks
+    ]
+    return Response(feedbacks_data)

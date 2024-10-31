@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import agendar_visita, reservar_veiculo, reservar_aluguel, listar_agendamentos_cliente, listar_agendamentos_pendentes, assumir_agendamento, listar_atendimentos_funcionario, verificar_disponibilidade, registrar_feedback
+from .views import agendar_visita, reservar_veiculo, reservar_aluguel, listar_agendamentos_cliente, listar_agendamentos_pendentes, assumir_agendamento, listar_atendimentos_funcionario, verificar_disponibilidade, registrar_feedback, listar_feedbacks
  
 
 urlpatterns = [
@@ -12,5 +12,6 @@ urlpatterns = [
     path('agendamento/meus/', listar_atendimentos_funcionario, name='listar_atendimentos_funcionario'),
     path('verificar-disponibilidade/', verificar_disponibilidade, name='verificar_disponibilidade'),
     path('agendamento/<int:agendamento_id>/feedback/', registrar_feedback, name='assumir_agendamento'),
+    path('feedbacks/', listar_feedbacks, name='registrar_feedback'),
     
 ]
