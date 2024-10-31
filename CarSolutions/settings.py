@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-i1=sqwxid*t7sqnlb^1ec&esr9d1m9=#_eckt(u1k4f2ukjt49'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['back-end-carsolutions.onrender.com', 'localhost', '127.0.0.1', '0.0.0.0']
 
@@ -76,21 +76,21 @@ WSGI_APPLICATION = 'CarSolutions.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
-
 # DATABASES = {
-#     'default': dj_database_url.config(
-#         default='postgresql://carsolutionsdb_user:UcjRSQ2iaTga2uUaiV5XM4NYf6r2qAJi@dpg-csh5llpu0jms739s3v90-a.oregon-postgres.render.com/carsolutionsdb',
-#         conn_max_age=600,
-#         ssl_require=not DEBUG
-#     )
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
 # }
+
+
+DATABASES = {
+    'default': dj_database_url.config(
+        default='postgresql://carsolutionsdb_user:UcjRSQ2iaTga2uUaiV5XM4NYf6r2qAJi@dpg-csh5llpu0jms739s3v90-a.oregon-postgres.render.com/carsolutionsdb',
+        conn_max_age=600,
+        ssl_require=not DEBUG
+    )
+}
 
 
 # Password validation
