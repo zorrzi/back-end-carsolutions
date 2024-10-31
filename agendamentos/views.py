@@ -5,7 +5,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Agendamento, Car
+from .models import Agendamento, Car, Feedback
 from cartaodecredito.models import CartaoCredito
 from cliente.models import Cliente
 
@@ -185,13 +185,16 @@ def reservar_aluguel(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def listar_agendamentos_cliente(request):
+    #printar os dados do request
     usuario = request.user
     agendamentos = Agendamento.objects.filter(usuario=usuario)
+    
 
     agendamentos_data = []
     for agendamento in agendamentos:
         atualizar_status_agendamento(agendamento)
         agendamento_info = {
+            "id": agendamento.id,
             "carro": f"{agendamento.carro.brand} {agendamento.carro.model}",
             "tipo": agendamento.tipo,
             "data": agendamento.data.strftime('%Y-%m-%d') if agendamento.data else '',
@@ -200,7 +203,8 @@ def listar_agendamentos_cliente(request):
             "horario_retirada": agendamento.horario_retirada.strftime('%H:%M') if agendamento.horario_retirada else '',
             "data_devolucao": agendamento.data_devolucao.strftime('%Y-%m-%d') if agendamento.data_devolucao else '',
             "horario_devolucao": agendamento.horario_devolucao.strftime('%H:%M') if agendamento.horario_devolucao else '',
-            "status": agendamento.status
+            "status": agendamento.status,
+            'feedbackEnviado': agendamento.feedbackEnviado
         }
         agendamentos_data.append(agendamento_info)
 
@@ -242,7 +246,7 @@ def assumir_agendamento(request, agendamento_id):
 @permission_classes([IsAuthenticated])
 def listar_atendimentos_funcionario(request):
     usuario = request.user
-    atendimentos = Agendamento.objects.filter(funcionario=usuario, status='em atendimento')
+    atendimentos = Agendamento.objects.filter(funcionario=usuario, status='confirmado')
 
     atendimentos_data = []
     for atendimento in atendimentos:
@@ -261,3 +265,33 @@ def listar_atendimentos_funcionario(request):
         })
 
     return Response(atendimentos_data, status=status.HTTP_200_OK)
+
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def registrar_feedback(request, agendamento_id):
+    usuario = request.user
+    comentario = request.data.get("comentario")
+    nota = request.data.get("nota")
+
+    # Validar nota
+    if not 1 <= int(nota) <= 5:
+        return Response({"error": "Nota deve estar entre 1 e 5."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Verificar se o agendamento existe, pertence ao usuário e se já foi avaliado
+    try:
+        agendamento = Agendamento.objects.get(id=agendamento_id, usuario=usuario)
+        if agendamento.feedbackEnviado:
+            return Response({"error": "Este agendamento já foi avaliado."}, status=status.HTTP_400_BAD_REQUEST)
+    except Agendamento.DoesNotExist:
+        return Response({"error": "Agendamento não encontrado ou não pertence ao usuário."}, status=status.HTTP_404_NOT_FOUND)
+
+    # Criar o feedback
+    feedback = Feedback.objects.create(usuario=usuario, agendamento=agendamento, comentario=comentario, nota=nota)
+    
+    # Atualizar o agendamento para indicar que o feedback foi enviado
+    agendamento.feedbackEnviado = True
+    agendamento.save()
+
+    return Response({"message": "Feedback registrado com sucesso!"}, status=status.HTTP_201_CREATED)

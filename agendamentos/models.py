@@ -28,6 +28,18 @@ class Agendamento(models.Model):
     tipo = models.CharField(max_length=7, choices=TIPO_AGENDAMENTO)
     status = models.CharField(max_length=15, choices=STATUS_AGENDAMENTO, default='pendente')
     data_expiracao = models.DateField(null=True, blank=True)  # Data de expiração para a reserva
+    feedbackEnviado = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.usuario.username} - {self.carro.model} - {self.tipo}"
+
+
+class Feedback(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    agendamento = models.ForeignKey(Agendamento, on_delete=models.CASCADE)
+    comentario = models.TextField(blank=True, null=True)
+    nota = models.IntegerField(choices=[(i, i) for i in range(1, 6)])
+    
+
+    def __str__(self):
+        return f"{self.usuario.username} - Nota: {self.nota} - Agendamento ID: {self.agendamento.id}"
