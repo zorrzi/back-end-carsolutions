@@ -5,7 +5,7 @@ def get_car_info(brand, model, year):
     api_key = "3wfOr7JH9UghRIIU0lPSqA==Us3CpPJPkLZ0f2Pn"
     
     # Construção da URL da API
-    api_url = f"htps://api.api-ninjas.com/v1/cars?make={brand}&model={model}&year={year}"
+    api_url = f"https://api.api-ninjas.com/v1/cars?make={brand}&model={model}&year={year}"
 
     # Cabeçalho com a chave da API
     headers = {
