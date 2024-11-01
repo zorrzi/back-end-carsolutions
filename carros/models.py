@@ -14,7 +14,11 @@ class Car(models.Model):
     image_url_3 = models.URLField(null=True, blank=True, verbose_name="URL da Terceira Imagem")
     is_for_sale = models.BooleanField(default=False, verbose_name="À Venda")
     is_for_rent = models.BooleanField(default=False, verbose_name="Para Aluguel")
-    is_reserved = models.BooleanField(default=False, verbose_name="Reservado")  # Novo campo
+    is_reserved = models.BooleanField(default=False, verbose_name="Reservado")
+    is_discounted_sale = models.BooleanField(default=False, verbose_name="Desconto Aplicado na Venda")
+    is_discounted_rent = models.BooleanField(default=False, verbose_name="Desconto Aplicado no Aluguel")
+    discount_percentage_sale = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True, verbose_name="Porcentagem de Desconto na Venda")
+    discount_percentage_rent = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True, verbose_name="Porcentagem de Desconto no Aluguel")
 
     def __str__(self):
         return f"{self.brand} {self.model} ({self.year})"
