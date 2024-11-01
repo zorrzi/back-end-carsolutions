@@ -5,6 +5,7 @@ from .models import Car
 from .serializers import CarSerializer
 from .utils import get_car_info
 from django.http import JsonResponse
+from decimal import Decimal, InvalidOperation
 
 @api_view(['GET', 'POST'])
 def car_create(request):
@@ -181,3 +182,29 @@ def reserve_car(request, id):
     car.save()
 
     return Response({"message": "Carro reservado com sucesso!"}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def apply_discount(request):
+    ids = request.data.get("ids", [])
+    discount_type = request.data.get("discount_type")
+    discount_percentage = request.data.get("discount_percentage")
+
+    if not ids or discount_type not in ["purchase", "rental"] or discount_percentage is None:
+        return Response({"error": "Dados inválidos."}, status=400)
+
+    cars = Car.objects.filter(id__in=ids)
+    for car in cars:
+        # Aplicar o desconto de acordo com o tipo e disponibilidade do carro
+        if discount_type == "purchase" and car.is_for_sale:
+            car.is_discounted_sale = True
+            car.discount_percentage_sale = discount_percentage
+        elif discount_type == "rental" and car.is_for_rent:
+            car.is_discounted_rent = True
+            car.discount_percentage_rent = discount_percentage
+        else:
+            # Ignorar carros não disponíveis para o tipo de desconto solicitado
+            continue
+        car.save()
+
+    return Response({"success": "Desconto aplicado com sucesso."})
