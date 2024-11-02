@@ -14,6 +14,7 @@ urlpatterns = [
     path('delete-em-massa/', views.delete_em_massa, name='bulk_delete_cars'),
     path('reserve/<int:id>/', views.reserve_car, name='reserve-car'),
     path('apply-discount/', views.apply_discount, name='aplly-discount'),
+    path('remove-discount/<int:car_id>/', views.remove_discount, name='remove_discount'),
     
 
 ]

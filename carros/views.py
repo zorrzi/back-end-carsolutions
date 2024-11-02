@@ -208,3 +208,23 @@ def apply_discount(request):
         car.save()
 
     return Response({"success": "Desconto aplicado com sucesso."})
+
+
+@api_view(['PATCH'])
+def remove_discount(request, car_id):
+    try:
+        # Obtém o carro pelo ID
+        car = Car.objects.get(id=car_id)
+        
+        # Remove todos os descontos
+        car.is_discounted_sale = False
+        car.discount_percentage_sale = None
+        car.is_discounted_rent = False
+        car.discount_percentage_rent = None
+        car.save()
+        
+        return Response({"success": "Desconto removido com sucesso."}, status=status.HTTP_200_OK)
+    except Car.DoesNotExist:
+        return Response({"error": "Carro não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
