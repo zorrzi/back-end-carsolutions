@@ -48,13 +48,10 @@ def login_cliente(request):
     username = data.get('username')
     password = data.get('password')
 
-    print(username)
-    print(password)
+
 
     # Autentica o usuário
     user = authenticate(request, username=username, password=password)
-    print('autenticado')
-    print(user)
 
     if user is not None and hasattr(user, 'cliente'):
         print('tem cliente')
@@ -67,19 +64,16 @@ def login_cliente(request):
 
 @api_view(['POST'])
 def logout_cliente(request):
-    if request.auth:
-        try:
-            request.user.auth_token.delete()
-            return Response({'message': 'Logout realizado com sucesso!'}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({'message': 'Erro ao fazer logout.'}, status=status.HTTP_400_BAD_REQUEST)
-    else:
-        return Response({'message': 'Token não encontrado.'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        request.user.auth_token.delete()
+        return Response({'message': 'Logout realizado com sucesso!'}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'message': 'Erro ao fazer logout.'}, status=status.HTTP_400_BAD_REQUEST)
+
     
 
 @api_view(['POST'])
 def adicionar_favorito(request, car_id):
-    print(request.user)
     if not request.user.is_authenticated:
         return Response({'message': 'Usuário não autenticado.'}, status=401)
 

@@ -25,6 +25,8 @@ class Agendamento(models.Model):
     horario_retirada = models.TimeField(null=True, blank=True)  # Horário de retirada
     data_devolucao = models.DateField(null=True, blank=True)  # Data de devolução para aluguel
     horario_devolucao = models.TimeField(null=True, blank=True)  # Horário de devolução
+    valor_agendamento = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Preço com desconto
+    valor_pago = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Preço final
     tipo = models.CharField(max_length=7, choices=TIPO_AGENDAMENTO)
     status = models.CharField(max_length=15, choices=STATUS_AGENDAMENTO, default='pendente')
     data_expiracao = models.DateField(null=True, blank=True)  # Data de expiração para a reserva

@@ -1,4 +1,5 @@
 import datetime
+
 from django.shortcuts import get_object_or_404
 from cartaodecredito.serializers import CartaoCreditoSerializer
 from rest_framework.decorators import api_view, permission_classes
@@ -37,6 +38,7 @@ def atualizar_status_agendamento(agendamento):
 @permission_classes([IsAuthenticated])
 def agendar_visita(request):
     usuario = request.user
+    cliente = Cliente.objects.get(user=usuario)
     carro_id = request.data.get('carro_id')
     data = request.data.get('data')
     horario = request.data.get('horario')
@@ -45,14 +47,19 @@ def agendar_visita(request):
         return Response({"error": "Data e horário são obrigatórios para a visita."}, status=status.HTTP_400_BAD_REQUEST)
 
     carro = get_object_or_404(Car, id=carro_id)
+    valor_visita = 0
     agendamento = Agendamento.objects.create(
         carro=carro,
         usuario=usuario,
         data=data,
         horario=horario,
         tipo='visita',
+        valor_agendamento=valor_visita,
+        valor_pago = valor_visita,
         status='pendente'
     )
+
+    cliente.adicionar_pontos(1)
     return Response({"message": "Visita agendada com sucesso!"}, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
@@ -63,10 +70,12 @@ def reservar_veiculo(request):
     carro_id = request.data.get('carro_id')
     cartao_id = request.data.get('cartao_id')
     novo_cartao_dados = request.data.get('novo_cartao')
+    pontos_utilizados = int(request.data.get('pontos_utilizados', 0))
 
     if not carro_id:
         return Response({"error": "ID do carro é obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
 
+    # Verificação de cartão de crédito
     if cartao_id:
         cartao = get_object_or_404(CartaoCredito, id=cartao_id, cliente=cliente)
     elif novo_cartao_dados:
@@ -78,20 +87,47 @@ def reservar_veiculo(request):
     else:
         return Response({"error": "Cartão de crédito é obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
 
-    data_reserva = datetime.date.today()
-    data_expiracao = data_reserva + datetime.timedelta(days=14)
-
     carro = get_object_or_404(Car, id=carro_id)
+
+    # Definir o preço da reserva
+    preco_reserva = carro.purchase_price if carro.is_for_sale else None
+
+    if not preco_reserva:
+        return Response({"error": "Carro não disponível para venda."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Aplicar desconto com base nos pontos
+    if pontos_utilizados > 0:
+        if pontos_utilizados > cliente.pontos:
+            return Response({"error": "Pontos insuficientes."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        desconto = pontos_utilizados / 10  # Exemplo: cada 10 pontos = 1 unidade de desconto
+        preco_reserva = max(preco_reserva - desconto, 0)
+
+        # Subtrair os pontos utilizados
+        cliente.pontos -= pontos_utilizados
+        cliente.save()
+
+    # Criar o agendamento com valor do agendamento definido
     Agendamento.objects.create(
         carro=carro,
         usuario=usuario,
         tipo='reserva',
-        data=data_reserva,
-        data_expiracao=data_expiracao,
+        data=datetime.datetime.today().date(),
+        valor_agendamento=preco_reserva,  # Salva o valor com desconto
+        valor_pago=1000,
         status='pendente'
     )
-    
-    return Response({"message": "Reserva de veículo realizada com sucesso!"}, status=status.HTTP_201_CREATED)
+
+    pontos_ganhos = 20  # Exemplo: 20 pontos por reserva de veículo
+    cliente.pontos += pontos_ganhos
+    cliente.save()
+
+    return Response({
+        "message": "Reserva de veículo realizada com sucesso!",
+        "preco_reserva": preco_reserva,
+        "pontos_utilizados": pontos_utilizados
+    }, status=status.HTTP_201_CREATED)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -139,57 +175,67 @@ def reservar_aluguel(request):
     cliente = Cliente.objects.get(user=usuario)
     carro_id = request.data.get('carro_id')
     data_retirada = request.data.get('data_retirada')
-    horario_retirada = request.data.get('horario_retirada')
     data_devolucao = request.data.get('data_devolucao')
-    horario_devolucao = request.data.get('horario_devolucao')
-    cartao_id = request.data.get('cartao_id')
-    novo_cartao_dados = request.data.get('novo_cartao')
+    pontos_utilizados = int(request.data.get('pontos_utilizados', 0))
 
-    # Verificação de dados obrigatórios
-    if not carro_id or not data_retirada or not data_devolucao or not horario_retirada or not horario_devolucao:
+    if not carro_id or not data_retirada or not data_devolucao:
         return Response({"error": "Dados obrigatórios ausentes."}, status=status.HTTP_400_BAD_REQUEST)
-
-    # Cartão de crédito
-    if cartao_id:
-        cartao = get_object_or_404(CartaoCredito, id=cartao_id, cliente=cliente)
-    elif novo_cartao_dados:
-        serializer = CartaoCreditoSerializer(data=novo_cartao_dados)
-        if serializer.is_valid():
-            cartao = serializer.save(cliente=cliente)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    else:
-        return Response({"error": "Cartão de crédito é obrigatório para reserva de aluguel."}, status=status.HTTP_400_BAD_REQUEST)
 
     carro = get_object_or_404(Car, id=carro_id)
 
-    # Verificar a disponibilidade do carro no intervalo de datas fornecido
-    disponibilidade = checar_disponibilidade_aluguel(carro_id, data_retirada, horario_retirada, data_devolucao, horario_devolucao)
-    if not disponibilidade:
-        return Response({"error": "Carro já está reservado para o período selecionado."}, status=status.HTTP_400_BAD_REQUEST)
+    # Verificar se o carro está disponível para aluguel
+    if not carro.is_for_rent:
+        return Response({"error": "Carro não disponível para aluguel."}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Criar o agendamento de aluguel
+    # Calcular o total de dias de aluguel e preço sem desconto
+    data_retirada_dt = datetime.datetime.strptime(data_retirada, "%Y-%m-%d")
+    data_devolucao_dt = datetime.datetime.strptime(data_devolucao, "%Y-%m-%d")
+    dias_aluguel = (data_devolucao_dt - data_retirada_dt).days
+    preco_total_aluguel = dias_aluguel * carro.rental_price
+
+    # Aplicar desconto com base nos pontos
+    if pontos_utilizados > 0:
+        if pontos_utilizados > cliente.pontos:
+            return Response({"error": "Pontos insuficientes."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        desconto = pontos_utilizados / 10  # Exemplo: cada 10 pontos = 1 unidade de desconto
+        preco_total_aluguel = max(preco_total_aluguel - desconto, 0)
+
+        valor_pago = preco_total_aluguel / 2
+
+        # Subtrair os pontos utilizados
+        cliente.pontos -= pontos_utilizados
+        cliente.save()
+
+    # Criar o agendamento de aluguel com valor com desconto
     Agendamento.objects.create(
         carro=carro,
         usuario=usuario,
         tipo='aluguel',
         data_retirada=data_retirada,
-        horario_retirada=horario_retirada,
         data_devolucao=data_devolucao,
-        horario_devolucao=horario_devolucao,
+        valor_agendamento=preco_total_aluguel,  # Salva o valor com desconto
+        valor_pago=(preco_total_aluguel/2),
         status='pendente'
     )
 
-    return Response({"message": "Reserva de aluguel realizada com sucesso!"}, status=status.HTTP_201_CREATED)
+    pontos_por_dia = 3 
+    pontos_ganhos = dias_aluguel * pontos_por_dia
+    cliente.pontos += pontos_ganhos
+    cliente.save()
+
+    return Response({
+        "message": "Reserva de aluguel realizada com sucesso!",
+        "preco_total_aluguel": preco_total_aluguel,
+        "pontos_utilizados": pontos_utilizados
+    }, status=status.HTTP_201_CREATED)
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def listar_agendamentos_cliente(request):
-    #printar os dados do request
     usuario = request.user
     agendamentos = Agendamento.objects.filter(usuario=usuario)
-    
 
     agendamentos_data = []
     for agendamento in agendamentos:
@@ -205,12 +251,13 @@ def listar_agendamentos_cliente(request):
             "data_devolucao": agendamento.data_devolucao.strftime('%Y-%m-%d') if agendamento.data_devolucao else '',
             "horario_devolucao": agendamento.horario_devolucao.strftime('%H:%M') if agendamento.horario_devolucao else '',
             "status": agendamento.status,
-            'feedbackEnviado': agendamento.feedbackEnviado
+            "valor_agendamento": agendamento.valor_agendamento,
+            "valor_pago": agendamento.valor_pago,
+            "feedbackEnviado": agendamento.feedbackEnviado
         }
         agendamentos_data.append(agendamento_info)
 
     return Response(agendamentos_data, status=status.HTTP_200_OK)
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def listar_agendamentos_pendentes(request):
@@ -226,6 +273,8 @@ def listar_agendamentos_pendentes(request):
             "data": agendamento.data.strftime('%Y-%m-%d') if agendamento.data else '',
             "horario": agendamento.horario.strftime('%H:%M') if agendamento.horario else '',
             "status": agendamento.status,
+            "valor_agendamento": agendamento.valor_agendamento,
+            "valor_pago": agendamento.valor_pago
         })
     return Response(agendamentos_data, status=status.HTTP_200_OK)
 
@@ -262,7 +311,9 @@ def listar_atendimentos_funcionario(request):
             "horario_retirada": atendimento.horario_retirada.strftime('%H:%M') if atendimento.horario_retirada else '',
             "data_devolucao": atendimento.data_devolucao.strftime('%Y-%m-%d') if atendimento.data_devolucao else '',
             "horario_devolucao": atendimento.horario_devolucao.strftime('%H:%M') if atendimento.horario_devolucao else '',
-            "status": atendimento.status
+            "status": atendimento.status,
+            "valor_agendamento": atendimento.valor_agendamento,
+            "valor_pago": atendimento.valor_pago
         })
 
     return Response(atendimentos_data, status=status.HTTP_200_OK)
