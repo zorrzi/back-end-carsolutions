@@ -21,7 +21,7 @@ def cadastro_cliente(request):
     confirm_password = data.get('confirmar_senha')
     email = data.get('email')
     cpf = data.get('cpf')
-    cnh = data.get('cnh')  # Novo campo para CNH
+    cnh = data.get('cnh')
 
     # Validações
     if password != confirm_password:
@@ -58,7 +58,6 @@ def login_cliente(request):
 
     if user is not None and hasattr(user, 'cliente'):
         print('tem cliente')
-        # Gera ou recria o token (sempre cria um novo token)
         Token.objects.filter(user=user).delete()  # Remove o token antigo, se existir
         token = Token.objects.create(user=user)   # Cria um novo token para o login
 
@@ -68,11 +67,8 @@ def login_cliente(request):
 
 @api_view(['POST'])
 def logout_cliente(request):
-    print(request.auth)
-    # Verifica se o token foi enviado
     if request.auth:
         try:
-            # Apaga o token associado ao usuário autenticado
             request.user.auth_token.delete()
             return Response({'message': 'Logout realizado com sucesso!'}, status=status.HTTP_200_OK)
         except Exception as e:
@@ -94,7 +90,6 @@ def adicionar_favorito(request, car_id):
     try:
         car = Car.objects.get(id=car_id)
         
-        # Verifica se o carro já está nos favoritos
         if car in cliente.favoritos.all():
             cliente.favoritos.remove(car)
             return Response({'message': 'Carro removido dos favoritos com sucesso!'}, status=200)
@@ -122,14 +117,27 @@ def verificar_favorito(request, car_id):
 
 @api_view(['GET'])
 def listar_favoritos(request):
-    print(request.user)
     try:
-        # Busca o cliente autenticado
         cliente = Cliente.objects.get(user=request.user)
-        # Obtém todos os carros favoritados pelo cliente
         favoritos = cliente.favoritos.all()
-        # Serializa os dados dos carros favoritos
-        data = [{"id": car.id, "brand": car.brand, "model": car.model, "year": car.year, "image_url_1": car.image_url_1, "is_for_rent": car.is_for_rent, "is_for_sale":car.is_for_sale} for car in favoritos]
+        data = [
+            {
+                "id": car.id,
+                "brand": car.brand,
+                "model": car.model,
+                "year": car.year,
+                "image_url_1": car.image_url_1,
+                "is_for_rent": car.is_for_rent,
+                "is_for_sale": car.is_for_sale,
+                "purchase_price": car.purchase_price,
+                "rental_price": car.rental_price,
+                "is_discounted_purchase": car.is_discounted_sale,
+                "discount_percentage_sale": car.discount_percentage_sale,
+                "is_discounted_rent": car.is_discounted_rent,
+                "discount_percentage_rent": car.discount_percentage_rent,
+            }
+            for car in favoritos
+        ]
         return Response(data, status=status.HTTP_200_OK)
     except Cliente.DoesNotExist:
         return Response({"error": "Cliente não encontrado."}, status=status.HTTP_404_NOT_FOUND)
@@ -152,7 +160,7 @@ def solicitar_redefinicao_senha(request):
         send_mail(
             'Redefinição de senha',
             f'Clique no link para redefinir sua senha: {reset_url}',
-            'carsolutions90@gmail.com',  # De: Insira o e-mail do remetente
+            'carsolutions90@gmail.com',
             [email],
             fail_silently=False,
         )
@@ -170,7 +178,6 @@ def redefinir_senha(request, uidb64, token):
         uid = force_str(urlsafe_base64_decode(uidb64))
         user = User.objects.get(pk=uid)
 
-        # Verifica se o token é válido
         if not default_token_generator.check_token(user, token):
             return Response({'error': 'Token inválido ou expirado.'}, status=status.HTTP_400_BAD_REQUEST)
 
