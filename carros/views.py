@@ -52,16 +52,16 @@ def car_update_delete(request, id):
 # Retorna todos os anos disponíveis
 @api_view(['GET'])
 def get_all_years(request):
-    anos = Car.objects.values_list('year', flat=True).distinct()
+    anos = Car.objects.filter(is_reserved=False).values_list('year', flat=True).distinct()
     return Response(anos)
 
 
-# Retorna todas as marcas disponíveis para um ano específico (parâmetro na URL)
+# Retorna todas as marcas disponíveis (parâmetro na URL) de carros que estão disponíveis is reserved = False
 @api_view(['GET'])
 def get_all_brands_by_year(request, ano):
-    # Filtra as marcas de acordo com o ano fornecido pela URL
-    marcas = Car.objects.filter(year=ano).values_list('brand', flat=True).distinct()
+    marcas = Car.objects.filter(year=ano, is_reserved=False).values_list('brand', flat=True).distinct()
     return Response(marcas)
+
 
 
 # Retorna todos os modelos disponíveis filtrados por ano e marca (parâmetros na URL)
@@ -77,7 +77,7 @@ def get_all_models_by_year_and_brand(request, ano, marca):
 def get_all_brands(request):
     ano = request.GET.get('ano', None)  # Pega o parâmetro 'ano' da query string
     if ano:
-        marcas = Car.objects.filter(year=ano).values_list('brand', flat=True).distinct()
+        marcas = Car.objects.filter(year=ano, is_reserved=False).values_list('brand', flat=True).distinct()
     else:
         marcas = Car.objects.values_list('brand', flat=True).distinct()
     return Response(marcas)
@@ -91,9 +91,9 @@ def get_all_models(request):
 
     queryset = Car.objects.all()
     if ano:
-        queryset = queryset.filter(year=ano)
+        queryset = queryset.filter(year=ano, is_reserved=False)
     if marca:
-        queryset = queryset.filter(brand=marca)
+        queryset = queryset.filter(brand=marca, is_reserved=False)
     
     modelos = queryset.values_list('model', flat=True).distinct()
     return Response(modelos)
