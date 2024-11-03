@@ -10,6 +10,7 @@ from .models import Agendamento, Car, Feedback
 from cartaodecredito.models import CartaoCredito
 from cliente.models import Cliente
 from .serializers import FeedbackSerializer
+from decimal import Decimal
 
 # Função auxiliar para atualizar status
 def atualizar_status_agendamento(agendamento):
@@ -89,18 +90,18 @@ def reservar_veiculo(request):
 
     carro = get_object_or_404(Car, id=carro_id)
 
-    # Definir o preço da reserva
-    preco_reserva = carro.purchase_price if carro.is_for_sale else None
+    # Definir o preço da reserva com desconto se aplicável
+    preco_reserva = carro.purchase_price
+    if carro.is_discounted_sale:
+        preco_reserva *= (1 - carro.discount_percentage_sale)
 
-    if not preco_reserva:
-        return Response({"error": "Carro não disponível para venda."}, status=status.HTTP_400_BAD_REQUEST)
-
-    # Aplicar desconto com base nos pontos
+    # Aplicar desconto adicional com base nos pontos
     if pontos_utilizados > 0:
         if pontos_utilizados > cliente.pontos:
             return Response({"error": "Pontos insuficientes."}, status=status.HTTP_400_BAD_REQUEST)
         
-        desconto = pontos_utilizados / 10  # Exemplo: cada 10 pontos = 1 unidade de desconto
+        desconto_percentual = Decimal(1) / Decimal(pontos_utilizados)
+        desconto = preco_reserva * desconto_percentual
         preco_reserva = max(preco_reserva - desconto, 0)
 
         # Subtrair os pontos utilizados
@@ -119,7 +120,7 @@ def reservar_veiculo(request):
         status='pendente'
     )
 
-    pontos_ganhos = 20  # Exemplo: 20 pontos por reserva de veículo
+    pontos_ganhos = 100
     cliente.pontos += pontos_ganhos
     cliente.save()
 
@@ -190,21 +191,22 @@ def reservar_aluguel(request):
     if not carro.is_for_rent:
         return Response({"error": "Carro não disponível para aluguel."}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Calcular o total de dias de aluguel e preço sem desconto
+    # Calcular o total de dias de aluguel e preço com desconto se aplicável
     data_retirada_dt = datetime.datetime.strptime(data_retirada, "%Y-%m-%d")
     data_devolucao_dt = datetime.datetime.strptime(data_devolucao, "%Y-%m-%d")
     dias_aluguel = (data_devolucao_dt - data_retirada_dt).days
     preco_total_aluguel = dias_aluguel * carro.rental_price
 
-    # Aplicar desconto com base nos pontos
+    if carro.is_discounted_rent:
+        preco_total_aluguel *= (1 - carro.discount_percentage_rent)
+
+    # Aplicar desconto adicional com base nos pontos
     if pontos_utilizados > 0:
         if pontos_utilizados > cliente.pontos:
             return Response({"error": "Pontos insuficientes."}, status=status.HTTP_400_BAD_REQUEST)
         
-        desconto = pontos_utilizados / 10  # Exemplo: cada 10 pontos = 1 unidade de desconto
+        desconto = Decimal(pontos_utilizados) / Decimal(100)
         preco_total_aluguel = max(preco_total_aluguel - desconto, 0)
-
-        valor_pago = preco_total_aluguel / 2
 
         # Subtrair os pontos utilizados
         cliente.pontos -= pontos_utilizados
@@ -219,12 +221,12 @@ def reservar_aluguel(request):
         horario_retirada=horario_retirada,
         data_devolucao=data_devolucao,
         horario_devolucao=horario_devolucao,
-        valor_agendamento=preco_total_aluguel,  # Salva o valor com desconto
-        valor_pago=(preco_total_aluguel/2),
+        valor_agendamento=preco_total_aluguel,
+        valor_pago=(preco_total_aluguel / 2),
         status='pendente'
     )
 
-    pontos_por_dia = 3 
+    pontos_por_dia = 10
     pontos_ganhos = dias_aluguel * pontos_por_dia
     cliente.pontos += pontos_ganhos
     cliente.save()
