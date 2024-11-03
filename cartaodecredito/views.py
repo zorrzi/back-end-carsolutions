@@ -19,9 +19,9 @@ def listar_cartoes(request):
 @permission_classes([IsAuthenticated])
 def adicionar_cartao(request):
     cliente = Cliente.objects.get(user=request.user)
-    dados_cartao = request.data
+    dados_cartao = request.data['novo_cartao'] 
     serializer = CartaoCreditoSerializer(data=dados_cartao)
-
+    print(dados_cartao)
     if serializer.is_valid():
         serializer.save(cliente=cliente)
         return Response({"message": "Cartão de crédito adicionado com sucesso!"}, status=status.HTTP_201_CREATED)

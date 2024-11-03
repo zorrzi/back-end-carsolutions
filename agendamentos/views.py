@@ -113,6 +113,7 @@ def reservar_veiculo(request):
         usuario=usuario,
         tipo='reserva',
         data=datetime.datetime.today().date(),
+        data_expiracao=datetime.datetime.today().date() + datetime.timedelta(days=14),
         valor_agendamento=preco_reserva,  # Salva o valor com desconto
         valor_pago=1000,
         status='pendente'
@@ -175,7 +176,9 @@ def reservar_aluguel(request):
     cliente = Cliente.objects.get(user=usuario)
     carro_id = request.data.get('carro_id')
     data_retirada = request.data.get('data_retirada')
+    horario_retirada = request.data.get('horario_retirada')
     data_devolucao = request.data.get('data_devolucao')
+    horario_devolucao = request.data.get('horario_devolucao')
     pontos_utilizados = int(request.data.get('pontos_utilizados', 0))
 
     if not carro_id or not data_retirada or not data_devolucao:
@@ -213,7 +216,9 @@ def reservar_aluguel(request):
         usuario=usuario,
         tipo='aluguel',
         data_retirada=data_retirada,
+        horario_retirada=horario_retirada,
         data_devolucao=data_devolucao,
+        horario_devolucao=horario_devolucao,
         valor_agendamento=preco_total_aluguel,  # Salva o valor com desconto
         valor_pago=(preco_total_aluguel/2),
         status='pendente'
@@ -249,6 +254,7 @@ def listar_agendamentos_cliente(request):
             "data_retirada": agendamento.data_retirada.strftime('%Y-%m-%d') if agendamento.data_retirada else '',
             "horario_retirada": agendamento.horario_retirada.strftime('%H:%M') if agendamento.horario_retirada else '',
             "data_devolucao": agendamento.data_devolucao.strftime('%Y-%m-%d') if agendamento.data_devolucao else '',
+            "data_expiracao": agendamento.data_expiracao.strftime('%Y-%m-%d') if agendamento.data_expiracao else '',
             "horario_devolucao": agendamento.horario_devolucao.strftime('%H:%M') if agendamento.horario_devolucao else '',
             "status": agendamento.status,
             "valor_agendamento": agendamento.valor_agendamento,
@@ -261,21 +267,42 @@ def listar_agendamentos_cliente(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def listar_agendamentos_pendentes(request):
-    agendamentos_pendentes = Agendamento.objects.filter(tipo='visita', status='pendente')
+    agendamentos_pendentes = Agendamento.objects.filter(status='pendente')
     agendamentos_data = []
     for agendamento in agendamentos_pendentes:
         atualizar_status_agendamento(agendamento)
-        agendamentos_data.append({
-            "id": agendamento.id,
-            "nome_cliente": agendamento.usuario.username,
-            "carro": f"{agendamento.carro.brand} {agendamento.carro.model}",
-            "tipo": agendamento.tipo,
-            "data": agendamento.data.strftime('%Y-%m-%d') if agendamento.data else '',
-            "horario": agendamento.horario.strftime('%H:%M') if agendamento.horario else '',
-            "status": agendamento.status,
-            "valor_agendamento": agendamento.valor_agendamento,
-            "valor_pago": agendamento.valor_pago
-        })
+        if agendamento.tipo == 'visita':
+            agendamentos_data.append({
+                "id": agendamento.id,
+                "nome_cliente": agendamento.usuario.username,
+                "carro": f"{agendamento.carro.brand} {agendamento.carro.model}",
+                "tipo": agendamento.tipo,
+                "data": agendamento.data.strftime('%Y-%m-%d') if agendamento.data else '',
+                "horario": agendamento.horario.strftime('%H:%M') if agendamento.horario else '',
+                "status": agendamento.status,
+            })
+        elif agendamento.tipo == 'reserva':
+
+            agendamentos_data.append({
+                "id": agendamento.id,
+                "nome_cliente": agendamento.usuario.username,
+                "carro": f"{agendamento.carro.brand} {agendamento.carro.model}",
+                "tipo": agendamento.tipo,
+                "data": agendamento.data.strftime('%Y-%m-%d') if agendamento.data else '',
+                "status": agendamento.status,
+            })
+
+        elif agendamento.tipo == 'aluguel':
+            agendamentos_data.append({
+                "id": agendamento.id,
+                "nome_cliente": agendamento.usuario.username,
+                "carro": f"{agendamento.carro.brand} {agendamento.carro.model}",
+                "tipo": agendamento.tipo,
+                "data_retirada": agendamento.data_retirada.strftime('%Y-%m-%d') if agendamento.data_retirada else '',
+                "horario_retirada": agendamento.horario_retirada.strftime('%H:%M') if agendamento.horario_retirada else '',
+                "status": agendamento.status,
+            })
+        
     return Response(agendamentos_data, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
@@ -284,7 +311,7 @@ def assumir_agendamento(request, agendamento_id):
     usuario = request.user
     agendamento = get_object_or_404(Agendamento, id=agendamento_id, status='pendente')
 
-    if agendamento.tipo == 'visita':
+    if agendamento.tipo == 'visita' or agendamento.tipo == 'reserva' or agendamento.tipo == 'aluguel':
         agendamento.funcionario = usuario
         agendamento.status = 'confirmado'
         agendamento.save()
