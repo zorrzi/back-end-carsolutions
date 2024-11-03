@@ -6,6 +6,9 @@ from .serializers import CarSerializer
 from .utils import get_car_info
 from django.http import JsonResponse
 from decimal import Decimal, InvalidOperation
+import datetime
+import agendamentos.models as agendamentos  # Importa o módulo de agendamentos
+
 
 @api_view(['GET', 'POST'])
 def car_create(request):
@@ -122,6 +125,10 @@ def car_list(request):
     is_for_rent = request.GET.get('isForRent', 'true') == 'true'
     min_rental_price = request.GET.get('minRentPrice', None)
     max_rental_price = request.GET.get('maxRentPrice', None)
+    data_inicial = request.GET.get('startDate', None)
+    hora_inicial = request.GET.get('startHour', None)
+    data_final = request.GET.get('endDate', None)
+    hora_final = request.GET.get('endHour', None)
     min_purchase_price = request.GET.get('minSalePrice', None)
     max_purchase_price = request.GET.get('maxSalePrice', None)
     min_mileage = request.GET.get('minMileage', None)
@@ -140,6 +147,22 @@ def car_list(request):
         queryset = queryset.filter(is_for_rent=True)
     if min_rental_price and max_rental_price:
         queryset = queryset.filter(rental_price__gte=min_rental_price, rental_price__lte=max_rental_price)
+
+    # Filtra carros disponíveis no intervalo de datas especificado
+    if data_inicial and data_final and hora_inicial and hora_final:
+        # Converte as datas e horas para objetos datetime
+        data_inicio_completa = datetime.datetime.strptime(f"{data_inicial} {hora_inicial}", "%Y-%m-%d %H:%M")
+        data_final_completa = datetime.datetime.strptime(f"{data_final} {hora_final}", "%Y-%m-%d %H:%M")
+
+        # Obtém IDs de carros que estão com agendamentos conflitantes no período especificado
+        carros_indisponiveis_ids = agendamentos.Agendamento.objects.filter(
+            data_retirada__lt=data_final_completa,
+            data_devolucao__gt=data_inicio_completa
+        ).values_list('carro_id', flat=True)
+
+        # Exclui carros indisponíveis no período
+        queryset = queryset.exclude(id__in=carros_indisponiveis_ids)
+
     if min_purchase_price and max_purchase_price:
         queryset = queryset.filter(purchase_price__gte=min_purchase_price, purchase_price__lte=max_purchase_price)
     if min_mileage is not None and max_mileage is not None:
@@ -154,6 +177,7 @@ def car_list(request):
     # Serializa os dados filtrados
     serializer = CarSerializer(queryset, many=True)
     return Response(serializer.data)
+
 
 
 
