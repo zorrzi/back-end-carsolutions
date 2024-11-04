@@ -53,7 +53,7 @@ def agendar_visita(request):
         carro=carro,
         carro_marca=carro.brand,
         carro_modelo=carro.model,
-        carro_preco=carro.purchase_price,
+        carro_preco=0,
         carro_ano=carro.year,
         usuario=usuario,
         data=data,
@@ -112,9 +112,16 @@ def reservar_veiculo(request):
         cliente.pontos -= pontos_utilizados
         cliente.save()
 
-    # Criar o agendamento com valor do agendamento definido
+
+    print(carro.brand)
+    print(carro.model)
+    # Criar o agendamento com as informações do carro incluídas
     Agendamento.objects.create(
         carro=carro,
+        carro_marca=carro.brand,
+        carro_modelo=carro.model,
+        carro_preco=carro.purchase_price,
+        carro_ano=carro.year,
         usuario=usuario,
         tipo='reserva',
         data=datetime.datetime.today().date(),
@@ -216,9 +223,15 @@ def reservar_aluguel(request):
         cliente.pontos -= pontos_utilizados
         cliente.save()
 
-    # Criar o agendamento de aluguel com valor com desconto
+    # Criar o agendamento de aluguel com as informações do carro incluídas
+    print(carro.brand)
+    print(carro.model)
     Agendamento.objects.create(
         carro=carro,
+        carro_marca=carro.brand,
+        carro_modelo=carro.model,
+        carro_preco=carro.rental_price,
+        carro_ano=carro.year,
         usuario=usuario,
         tipo='aluguel',
         data_retirada=data_retirada,
