@@ -52,11 +52,12 @@ def car_update_delete(request, id):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-# Retorna todos os anos disponíveis
+# Retorna todos os anos disponíveis por ordem crescente de carros que estão disponíveis is reserved = False
 @api_view(['GET'])
 def get_all_years(request):
-    anos = Car.objects.filter(is_reserved=False).values_list('year', flat=True).distinct()
+    anos = Car.objects.filter(is_reserved=False).values_list('year', flat=True).distinct().order_by('year')
     return Response(anos)
+
 
 
 # Retorna todas as marcas disponíveis (parâmetro na URL) de carros que estão disponíveis is reserved = False
