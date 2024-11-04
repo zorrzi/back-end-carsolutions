@@ -263,6 +263,7 @@ def listar_agendamentos_cliente(request):
 
     agendamentos_data = []
     for agendamento in agendamentos:
+        atualizar_status_agendamento(agendamento)
         agendamento_info = {
             "id": agendamento.id,
             "carro_marca": agendamento.carro_marca,
@@ -404,7 +405,6 @@ def registrar_feedback(request, agendamento_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def listar_feedbacks(request):
     feedbacks = Feedback.objects.all()
     feedbacks_data = [
