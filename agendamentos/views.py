@@ -63,8 +63,6 @@ def agendar_visita(request):
         valor_pago=0,
         status='pendente'
     )
-
-    cliente.adicionar_pontos(1)
     return Response({"message": "Visita agendada com sucesso!"}, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
