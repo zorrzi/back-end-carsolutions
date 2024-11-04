@@ -1,4 +1,5 @@
 import datetime
+import pytz
 
 from django.shortcuts import get_object_or_404
 from cartaodecredito.serializers import CartaoCreditoSerializer
@@ -16,22 +17,23 @@ from decimal import Decimal
 def atualizar_status_agendamento(agendamento):
     hoje = datetime.date.today()
     hora = datetime.datetime.now().time()
-    if agendamento.tipo == 'reserva' and agendamento.data_expiracao and agendamento.data_expiracao <= hoje and hora >= agendamento.horario_devolucao and agendamento.status == 'confirmado':
+    hora_br = hora.astimezone(pytz.timezone('America/Sao_Paulo'))
+    if agendamento.tipo == 'reserva' and agendamento.data_expiracao and agendamento.data_expiracao <= hoje and hora_br >= agendamento.horario_devolucao and agendamento.status == 'confirmado':
         agendamento.status = 'concluido'
         agendamento.save()
-    elif agendamento.tipo == 'aluguel' and agendamento.data_devolucao and agendamento.data_devolucao <= hoje and hora >= agendamento.horario_devolucao and agendamento.status == 'confirmado':
+    elif agendamento.tipo == 'aluguel' and agendamento.data_devolucao and agendamento.data_devolucao <= hoje and hora_br >= agendamento.horario_devolucao and agendamento.status == 'confirmado':
         agendamento.status = 'concluido'
         agendamento.save()
-    elif agendamento.tipo == 'visita' and agendamento.data <= hoje and hora >= agendamento.horario and agendamento.status == 'confirmado':
+    elif agendamento.tipo == 'visita' and agendamento.data <= hoje and hora_br >= agendamento.horario and agendamento.status == 'confirmado':
         agendamento.status = 'concluido'
         agendamento.save()
-    elif agendamento.tipo == 'visita' and  agendamento.data <= hoje and hora >= agendamento.horario and agendamento.status == 'pendente':
+    elif agendamento.tipo == 'visita' and  agendamento.data <= hoje and hora_br >= agendamento.horario and agendamento.status == 'pendente':
         agendamento.status = 'cancelado'
         agendamento.save()
-    elif agendamento.tipo == 'reserva' and agendamento.data_expiracao and agendamento.data_expiracao <= hoje and hora >= agendamento.horario_devolucao and agendamento.status == 'pendente':
+    elif agendamento.tipo == 'reserva' and agendamento.data_expiracao and agendamento.data_expiracao <= hoje and hora_br >= agendamento.horario_devolucao and agendamento.status == 'pendente':
         agendamento.status = 'cancelado'
         agendamento.save()
-    elif agendamento.tipo == 'aluguel' and agendamento.data_devolucao and agendamento.data_devolucao <= hoje and hora >= agendamento.horario_devolucao and agendamento.status == 'pendente':
+    elif agendamento.tipo == 'aluguel' and agendamento.data_devolucao and agendamento.data_devolucao <= hoje and hora_br >= agendamento.horario_devolucao and agendamento.status == 'pendente':
         agendamento.status = 'cancelado'
         agendamento.save()
 
