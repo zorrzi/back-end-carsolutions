@@ -190,3 +190,11 @@ def redefinir_senha(request, uidb64, token):
 
 
 '////////////////////////////////////////// //////////////////// //////////////////////////////////////////'
+
+@api_view(['GET'])
+def get_pontos(request):
+    try:
+        cliente = Cliente.objects.get(user=request.user)
+        return Response({'pontos': cliente.pontos}, status=status.HTTP_200_OK)
+    except Cliente.DoesNotExist:
+        return Response({'message': 'Cliente não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
