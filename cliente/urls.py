@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import cadastro_cliente, login_cliente, adicionar_favorito, logout_cliente, verificar_favorito, listar_favoritos, solicitar_redefinicao_senha, redefinir_senha 
+from .views import cadastro_cliente, login_cliente, adicionar_favorito, logout_cliente, verificar_favorito, listar_favoritos, solicitar_redefinicao_senha, redefinir_senha, get_pontos 
 
 urlpatterns = [
     path('cadastro/', cadastro_cliente, name='cadastro_cliente'),
@@ -10,6 +10,7 @@ urlpatterns = [
     path('favoritos/', listar_favoritos, name='lista_favoritos'),
     path('solicitar-redefinicao-senha/', solicitar_redefinicao_senha, name='solicitar_redefinicao_senha'),
     path('redefinir-senha/<uidb64>/<token>/', redefinir_senha, name='redefinir_senha'),
+    path('pontos/', get_pontos, name='get_pontos'),
     
 
 ]
