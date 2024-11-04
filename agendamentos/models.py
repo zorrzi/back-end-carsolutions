@@ -16,7 +16,13 @@ class Agendamento(models.Model):
         ('em atendimento', 'Em Atendimento'),
     ]
 
-    carro = models.ForeignKey(Car, on_delete=models.CASCADE)
+    carro = models.ForeignKey(Car, on_delete=models.SET_NULL, null=True)
+    carro_marca = models.CharField(max_length=100, null=True, blank=True)  # Marca do carro
+    carro_modelo = models.CharField(max_length=100, null=True, blank=True)  # Modelo do carro
+    carro_preco = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Preço do carro
+    carro_ano = models.IntegerField(null=True, blank=True) # Ano do carro
+
+
     usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='agendamentos_cliente')
     funcionario = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='agendamentos_funcionario')
     data = models.DateField(null=True, blank=True)  # Data da visita ou reserva

@@ -51,12 +51,16 @@ def agendar_visita(request):
     valor_visita = 0
     agendamento = Agendamento.objects.create(
         carro=carro,
+        carro_marca=carro.brand,
+        carro_modelo=carro.model,
+        carro_preco=carro.purchase_price,
+        carro_ano=carro.year,
         usuario=usuario,
         data=data,
         horario=horario,
         tipo='visita',
-        valor_agendamento=valor_visita,
-        valor_pago = valor_visita,
+        valor_agendamento=0,
+        valor_pago=0,
         status='pendente'
     )
 
@@ -246,10 +250,12 @@ def listar_agendamentos_cliente(request):
 
     agendamentos_data = []
     for agendamento in agendamentos:
-        atualizar_status_agendamento(agendamento)
         agendamento_info = {
             "id": agendamento.id,
-            "carro": f"{agendamento.carro.brand} {agendamento.carro.model}",
+            "carro_marca": agendamento.carro_marca,
+            "carro_modelo": agendamento.carro_modelo,
+            "carro_preco": agendamento.carro_preco,
+            "carro_ano": agendamento.carro_ano,
             "tipo": agendamento.tipo,
             "data": agendamento.data.strftime('%Y-%m-%d') if agendamento.data else '',
             "horario": agendamento.horario.strftime('%H:%M') if agendamento.horario else '',
@@ -266,6 +272,7 @@ def listar_agendamentos_cliente(request):
         agendamentos_data.append(agendamento_info)
 
     return Response(agendamentos_data, status=status.HTTP_200_OK)
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def listar_agendamentos_pendentes(request):
@@ -277,7 +284,8 @@ def listar_agendamentos_pendentes(request):
             agendamentos_data.append({
                 "id": agendamento.id,
                 "nome_cliente": agendamento.usuario.username,
-                "carro": f"{agendamento.carro.brand} {agendamento.carro.model}",
+                "carro_marca": agendamento.carro_marca,
+                "carro_modelo": agendamento.carro_modelo,
                 "tipo": agendamento.tipo,
                 "data": agendamento.data.strftime('%Y-%m-%d') if agendamento.data else '',
                 "horario": agendamento.horario.strftime('%H:%M') if agendamento.horario else '',
@@ -288,7 +296,8 @@ def listar_agendamentos_pendentes(request):
             agendamentos_data.append({
                 "id": agendamento.id,
                 "nome_cliente": agendamento.usuario.username,
-                "carro": f"{agendamento.carro.brand} {agendamento.carro.model}",
+                "carro_marca": agendamento.carro_marca,
+                "carro_modelo": agendamento.carro_modelo,
                 "tipo": agendamento.tipo,
                 "data": agendamento.data.strftime('%Y-%m-%d') if agendamento.data else '',
                 "status": agendamento.status,
@@ -298,7 +307,8 @@ def listar_agendamentos_pendentes(request):
             agendamentos_data.append({
                 "id": agendamento.id,
                 "nome_cliente": agendamento.usuario.username,
-                "carro": f"{agendamento.carro.brand} {agendamento.carro.model}",
+                "carro_marca": agendamento.carro_marca,
+                "carro_modelo": agendamento.carro_modelo,
                 "tipo": agendamento.tipo,
                 "data_retirada": agendamento.data_retirada.strftime('%Y-%m-%d') if agendamento.data_retirada else '',
                 "horario_retirada": agendamento.horario_retirada.strftime('%H:%M') if agendamento.horario_retirada else '',
@@ -334,6 +344,8 @@ def listar_atendimentos_funcionario(request):
             "id": atendimento.id,
             "nome": atendimento.usuario.username,
             "tipo": atendimento.tipo,
+            "carro_marca": atendimento.carro_marca,
+            "carro_modelo": atendimento.carro_modelo,
             "data": atendimento.data.strftime('%Y-%m-%d') if atendimento.data else '',
             "horario": atendimento.horario.strftime('%H:%M') if atendimento.horario else '',
             "data_retirada": atendimento.data_retirada.strftime('%Y-%m-%d') if atendimento.data_retirada else '',
