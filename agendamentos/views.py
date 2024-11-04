@@ -74,6 +74,7 @@ def reservar_veiculo(request):
     cliente = Cliente.objects.get(user=usuario)
     carro_id = request.data.get('carro_id')
     cartao_id = request.data.get('cartao_id')
+    codigo_seguranca = request.data.get('codigo_seguranca')  # Recebe o código de segurança
     novo_cartao_dados = request.data.get('novo_cartao')
     pontos_utilizados = int(request.data.get('pontos_utilizados', 0))
 
@@ -83,6 +84,8 @@ def reservar_veiculo(request):
     # Verificação de cartão de crédito
     if cartao_id:
         cartao = get_object_or_404(CartaoCredito, id=cartao_id, cliente=cliente)
+        if cartao.codigo_seguranca != codigo_seguranca:
+            return Response({"error": "Código de segurança incorreto."}, status=status.HTTP_400_BAD_REQUEST)
     elif novo_cartao_dados:
         serializer = CartaoCreditoSerializer(data=novo_cartao_dados)
         if serializer.is_valid():
@@ -112,9 +115,6 @@ def reservar_veiculo(request):
         cliente.pontos -= pontos_utilizados
         cliente.save()
 
-
-    print(carro.brand)
-    print(carro.model)
     # Criar o agendamento com as informações do carro incluídas
     Agendamento.objects.create(
         carro=carro,
@@ -187,6 +187,9 @@ def reservar_aluguel(request):
     usuario = request.user
     cliente = Cliente.objects.get(user=usuario)
     carro_id = request.data.get('carro_id')
+    cartao_id = request.data.get('cartao_id')  # Recebe o ID do cartão salvo
+    codigo_seguranca = request.data.get('codigo_seguranca')  # Recebe o código de segurança
+    novo_cartao_dados = request.data.get('novo_cartao')
     data_retirada = request.data.get('data_retirada')
     horario_retirada = request.data.get('horario_retirada')
     data_devolucao = request.data.get('data_devolucao')
@@ -201,6 +204,23 @@ def reservar_aluguel(request):
     # Verificar se o carro está disponível para aluguel
     if not carro.is_for_rent:
         return Response({"error": "Carro não disponível para aluguel."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Verificação de cartão de crédito
+    if cartao_id:
+        
+        cartao = get_object_or_404(CartaoCredito, id=cartao_id, cliente=cliente)
+        print(cartao.codigo_seguranca)
+        if cartao.codigo_seguranca != codigo_seguranca:
+            return Response({"error": "Código de segurança incorreto."}, status=status.HTTP_400_BAD_REQUEST)
+    elif novo_cartao_dados:
+        # Se é um novo cartão, serializa e valida os dados para salvar
+        serializer = CartaoCreditoSerializer(data=novo_cartao_dados)
+        if serializer.is_valid():
+            cartao = serializer.save(cliente=cliente)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        return Response({"error": "Cartão de crédito é obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
 
     # Calcular o total de dias de aluguel e preço com desconto se aplicável
     data_retirada_dt = datetime.datetime.strptime(data_retirada, "%Y-%m-%d")
@@ -224,8 +244,6 @@ def reservar_aluguel(request):
         cliente.save()
 
     # Criar o agendamento de aluguel com as informações do carro incluídas
-    print(carro.brand)
-    print(carro.model)
     Agendamento.objects.create(
         carro=carro,
         carro_marca=carro.brand,
@@ -239,7 +257,7 @@ def reservar_aluguel(request):
         data_devolucao=data_devolucao,
         horario_devolucao=horario_devolucao,
         valor_agendamento=preco_total_aluguel,
-        valor_pago=(preco_total_aluguel / 2),
+        valor_pago=(preco_total_aluguel / 2),  # 50% pago antecipadamente
         status='pendente'
     )
 
