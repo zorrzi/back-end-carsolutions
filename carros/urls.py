@@ -15,6 +15,7 @@ urlpatterns = [
     path('reserve/<int:id>/', views.reserve_car, name='reserve-car'),
     path('apply-discount/', views.apply_discount, name='aplly-discount'),
     path('remove-discount/<int:car_id>/', views.remove_discount, name='remove_discount'),
+    path('<int:car_id>/similares/', views.carros_similares, name='carros_similares'),
     
 
 ]

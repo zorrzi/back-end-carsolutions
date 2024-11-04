@@ -250,3 +250,16 @@ def remove_discount(request, car_id):
         return Response({"error": "Carro não encontrado."}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@api_view(['GET'])
+def carros_similares(request, car_id):
+    try:
+        carro_atual = Car.objects.get(id=car_id)
+    except Car.DoesNotExist:
+        return Response({"error": "Carro não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+
+    carros_similares = Car.objects.filter(brand=carro_atual.brand).exclude(id=car_id)[:5]  # Limita a 5 carros similares
+    serializer = CarSerializer(carros_similares, many=True)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
