@@ -126,9 +126,7 @@ def car_list(request):
     min_rental_price = request.GET.get('minRentPrice', None)
     max_rental_price = request.GET.get('maxRentPrice', None)
     data_inicial = request.GET.get('startDate', None)
-    hora_inicial = request.GET.get('startHour', None)
     data_final = request.GET.get('endDate', None)
-    hora_final = request.GET.get('endHour', None)
     min_purchase_price = request.GET.get('minSalePrice', None)
     max_purchase_price = request.GET.get('maxSalePrice', None)
     min_mileage = request.GET.get('minMileage', None)
@@ -149,10 +147,10 @@ def car_list(request):
         queryset = queryset.filter(rental_price__gte=min_rental_price, rental_price__lte=max_rental_price)
 
     # Filtra carros disponíveis no intervalo de datas especificado
-    if data_inicial and data_final and hora_inicial and hora_final:
+    if data_inicial and data_final:
         # Converte as datas e horas para objetos datetime
-        data_inicio_completa = datetime.datetime.strptime(f"{data_inicial} {hora_inicial}", "%Y-%m-%d %H:%M")
-        data_final_completa = datetime.datetime.strptime(f"{data_final} {hora_final}", "%Y-%m-%d %H:%M")
+        data_inicio_completa = datetime.datetime.strptime(f"{data_inicial}", "%Y-%m-%d")
+        data_final_completa = datetime.datetime.strptime(f"{data_final}", "%Y-%m-%d")
 
         # Obtém IDs de carros que estão com agendamentos conflitantes no período especificado
         carros_indisponiveis_ids = agendamentos.Agendamento.objects.filter(
